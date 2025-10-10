@@ -9,7 +9,11 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 intents = discord.Intents.default()
 inents.message_content = True
 
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
+
+for filename in os.listdir("./cogs"):
+	if filename.endswith(".py:):
+		bot.load_extension(f"cogs.{filename[:-3]}")
 
 @bot.event
 async def on_ready():
@@ -17,8 +21,5 @@ async def on_ready():
     await bot.tree.sync()
     print("✅ Slash commands synced")
 
-@bot.event
-async def setup_hook():
-    await bot.load_extension("cogs.boss")
-
 bot.run(TOKEN)
+
