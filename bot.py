@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from dotenve import load_dotenv
+from dotenv import load_dotenv
 import os
 
 load_dotenv()
@@ -18,5 +18,6 @@ for filename in os.listdir("./cogs"):
 @bot.event
 async def on_ready():
 	print(f"✅ Logged in as {bot.user}")
+
 
 bot.run(TOKEN)
