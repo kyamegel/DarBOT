@@ -5,41 +5,34 @@ class Boss(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-# Create the slash command group /boss
+# Create a slash command group for /boss
 boss = discord.SlashCommandGroup("boss", "Manage or view boss-related commands")
 
-# /boss add
-@boss.command(name="add", description="Add a new boss to the database")
+@boss.command(name="add", description="Add a new boss")
 async def boss_add(ctx):
     await ctx.respond("🧩 You used `/boss add`")
 
-# /boss edit
-@boss.command(name="edit", description="Edit an existing boss")
+@boss.command(name="edit", description="Edit a boss")
 async def boss_edit(ctx):
     await ctx.respond("🧩 You used `/boss edit`")
 
-# /boss remove
-@boss.command(name="remove", description="Remove a boss from the list")
+@boss.command(name="remove", description="Remove a boss")
 async def boss_remove(ctx):
     await ctx.respond("🧩 You used `/boss remove`")
 
-# /boss info
-@boss.command(name="info", description="Show detailed info about a boss")
+@boss.command(name="info", description="Show boss info")
 async def boss_info(ctx):
     await ctx.respond("🧩 You used `/boss info`")
 
-# /boss list
 @boss.command(name="list", description="List all bosses")
 async def boss_list(ctx):
     await ctx.respond("🧩 You used `/boss list`")
 
-# /boss timer
-@boss.command(name="timer", description="Show or manage boss timers")
+@boss.command(name="timer", description="Show boss timer")
 async def boss_timer(ctx):
     await ctx.respond("🧩 You used `/boss timer`")
 
-# /boss help
-@boss.command(name="help", description="Show help for boss commands")
+@boss.command(name="help", description="Show boss command help")
 async def boss_help(ctx):
     await ctx.respond("🧩 You used `/boss help`")
 
