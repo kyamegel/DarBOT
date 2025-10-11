@@ -5,38 +5,45 @@ class Boss(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-# Create slash command group: /boss
-boss = discord.SlashCommandGroup("boss", "Manage or view boss information")
+# Create the slash command group /boss
+boss = discord.SlashCommandGroup("boss", "Manage or view boss-related commands")
 
-@boss.command(name="add", description="Add a new boss")
+# /boss add
+@boss.command(name="add", description="Add a new boss to the database")
 async def boss_add(ctx):
-    await ctx.respond("🟢 /boss add")
+    await ctx.respond("🧩 You used `/boss add`")
 
-@boss.command(name="edit", description="Edit boss information")
+# /boss edit
+@boss.command(name="edit", description="Edit an existing boss")
 async def boss_edit(ctx):
-    await ctx.respond("🟠 /boss edit")
+    await ctx.respond("🧩 You used `/boss edit`")
 
-@boss.command(name="remove", description="Remove a boss")
+# /boss remove
+@boss.command(name="remove", description="Remove a boss from the list")
 async def boss_remove(ctx):
-    await ctx.respond("🔴 /boss remove")
+    await ctx.respond("🧩 You used `/boss remove`")
 
-@boss.command(name="info", description="Show boss information")
+# /boss info
+@boss.command(name="info", description="Show detailed info about a boss")
 async def boss_info(ctx):
-    await ctx.respond("ℹ️ /boss info")
+    await ctx.respond("🧩 You used `/boss info`")
 
+# /boss list
 @boss.command(name="list", description="List all bosses")
 async def boss_list(ctx):
-    await ctx.respond("📜 /boss list")
+    await ctx.respond("🧩 You used `/boss list`")
 
-@boss.command(name="timer", description="Show or set boss timers")
+# /boss timer
+@boss.command(name="timer", description="Show or manage boss timers")
 async def boss_timer(ctx):
-    await ctx.respond("⏰ /boss timer")
+    await ctx.respond("🧩 You used `/boss timer`")
 
+# /boss help
 @boss.command(name="help", description="Show help for boss commands")
 async def boss_help(ctx):
-    await ctx.respond("❓ /boss help")
+    await ctx.respond("🧩 You used `/boss help`")
 
-# Register group
+# Register the group with the bot
 def setup(bot):
     bot.add_cog(Boss(bot))
     bot.add_application_command(boss)
