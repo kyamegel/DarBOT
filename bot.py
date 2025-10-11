@@ -1,22 +1,19 @@
 import discord
 from discord.ext import commands
-import os
-from dotenv import load_dotenv
 
-load_dotenv()
-
+# Enable default intents
 intents = discord.Intents.default()
-intents.message_content = True
 
+# Create bot instance
 bot = commands.Bot(intents=intents)
-
-# Load cogs
-bot.load_extension("boss")  # make sure this matches your filename (boss.py)
 
 @bot.event
 async def on_ready():
     print(f"✅ Logged in as {bot.user}")
-    await bot.sync_commands()  # <-- important! sync all slash commands
+    await bot.sync_commands()
     print("✅ Slash commands synced.")
 
-bot.run(os.getenv("DISCORD_TOKEN"))
+# Load cogs
+bot.load_extension("cogs.boss")
+
+bot.run("YOUR_BOT_TOKEN_HERE")
