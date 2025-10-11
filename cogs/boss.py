@@ -42,17 +42,17 @@ async def boss_timer(ctx, boss_name: str = None):
 @boss.command(name="help", description="Show boss command help")
 async def boss_help(ctx):
     embed = discord.Embed(
-        title="📘 /boss Command Help",
-        description="Here’s a list of all available `/boss` subcommands:",
-        color=discord.Color.blue()
+        title="👹 **Boss Commands** 👹",
+        description="Here's a list of all available `/boss` subcommands:",
+        color=discord.Color.red()
     )
 
-    embed.add_field(name="/boss add", value="Adds a boss.", inline=False)
-    embed.add_field(name="/boss edit [boss_name]", value="Edits the info of the selected boss.", inline=False)
-    embed.add_field(name="/boss remove [boss_name]", value="Removes the chosen boss.", inline=False)
-    embed.add_field(name="/boss info [boss_name]", value="Displays the chosen boss' information.", inline=False)
-    embed.add_field(name="/boss list [all/today/<day>]", value="Displays a list of bosses. Options: `all`, `today`, `<day>`.", inline=False)
-    embed.add_field(name="/boss timer [boss_name]", value="Displays the chosen boss' timer.", inline=False)
+    embed.add_field(name="**``/boss add``**", value="Adds a boss to the list.", inline=False)
+    embed.add_field(name="**``/boss edit [boss_name]``**", value="Edit the information of the chosen boss.", inline=False)
+    embed.add_field(name="**``/boss remove``**", value="Remove the chosen boss.", inline=False)
+    embed.add_field(name="**``/boss info [boss_name]``**", value="Displays the chosen boss' information.", inline=False)
+    embed.add_field(name="**``/boss list [all/today/<day>] ``**", value="Displays a list of bosses.\n -# options: all, today, day", inline=False)
+    embed.add_field(name="**``/boss timer [boss_name]``**", value="Displays the chosen boss' timer.", inline=False)
 
     embed.set_footer(text="Use these commands to manage or view boss information.")
     await ctx.respond(embed=embed)
