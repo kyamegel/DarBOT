@@ -1,2 +1,2 @@
 # DarBOT
-Daily Attendance Report BOT
+Daily Attendance Report BOT for Santiago 2 Alliance
