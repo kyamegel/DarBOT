@@ -1,123 +1,122 @@
 import discord
-from discord import option
 from discord.ext import commands
-import datetime
+
+# Replace with your admin role name
+ADMIN_ROLE_NAME = "Admin"
 
 class Boss(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.boss_data = {}  # Temporary placeholder for boss info
+        self.bosses = {}  # Example in-memory data (replace with DB later)
 
-    boss = discord.SlashCommandGroup("boss", "Manage boss information")
+    def is_admin(self, ctx):
+        """Check if user has the admin role"""
+        return discord.utils.get(ctx.author.roles, name=ADMIN_ROLE_NAME) is not None
 
-    # /boss list [all/today/<day>]
-    @boss.command(name="list", description="List bosses (all, today, or a specific day)")
-    @option("day", description="Choose a day or 'all'", required=False)
-    async def list(self, ctx, day: str = "all"):
-        await ctx.defer()
-        day = day.lower()
-        if day == "all":
-            bosses = ", ".join(self.boss_data.keys()) or "No bosses available."
-        elif day == "today":
-            weekday = datetime.datetime.now().strftime("%A")
-            bosses = f"Bosses for {weekday}: TBD"  # Replace with DB query later
-        else:
-            bosses = f"Bosses for {day.capitalize()}: TBD"
-        await ctx.respond(f"📜 **Boss List ({day})**\n{bosses}")
+    # === /boss parent command ===
+    @commands.slash_command(name="boss", description="Manage or view boss information.")
+    async def boss(self, ctx):
+        pass  # parent command only
 
-    # /boss add
-    @boss.command(name="add", description="Add a new boss (Admin only)")
-    async def add(self, ctx):
-        if not await self._is_admin(ctx):
-            return await ctx.respond("🚫 You don’t have permission to use this command.", ephemeral=True)
+    # === /boss add ===
+    @boss.subcommand(name="add", description="Add a new boss (admin only)")
+    async def add(self, ctx, name: str, atk_type: str, monster_type: str, loot: str, spawn_place: str, spawn_cooldown: str):
+        if not self.is_admin(ctx):
+            await ctx.respond("❌ You don’t have permission to use this command.", ephemeral=True)
+            return
 
-        await ctx.respond("📝 Please provide the boss name:")
-        msg = await self.bot.wait_for("message", check=lambda m: m.author == ctx.author)
-        boss_name = msg.content
+        self.bosses[name.lower()] = {
+            "name": name,
+            "atk_type": atk_type,
+            "monster_type": monster_type,
+            "loot": loot,
+            "spawn_place": spawn_place,
+            "spawn_cooldown": spawn_cooldown
+        }
+        await ctx.respond(f"✅ Added boss **{name}** successfully!")
 
-        self.boss_data[boss_name] = {"name": boss_name}
-        await ctx.respond(f"✅ Boss **{boss_name}** added!")
+    # === /boss edit ===
+    @boss.subcommand(name="edit", description="Edit boss info (admin only)")
+    async def edit(self, ctx, name: str, field: str, value: str):
+        if not self.is_admin(ctx):
+            await ctx.respond("❌ You don’t have permission to use this command.", ephemeral=True)
+            return
 
-    # /boss edit [boss_name]
-    @boss.command(name="edit", description="Edit existing boss info (Admin only)")
-    @option("boss_name", description="Select a boss to edit")
-    async def edit(self, ctx, boss_name: str):
-        if not await self._is_admin(ctx):
-            return await ctx.respond("🚫 You don’t have permission to use this command.", ephemeral=True)
-        if boss_name not in self.boss_data:
-            return await ctx.respond("⚠️ Boss not found.")
-
-        await ctx.respond(f"🛠️ Editing info for {boss_name}... (Feature in progress)")
-
-    # /boss remove [boss_name]
-    @boss.command(name="remove", description="Remove a boss (Admin only)")
-    @option("boss_name", description="Select a boss to remove")
-    async def remove(self, ctx, boss_name: str):
-        if not await self._is_admin(ctx):
-            return await ctx.respond("🚫 You don’t have permission to use this command.", ephemeral=True)
-        if boss_name not in self.boss_data:
-            return await ctx.respond("⚠️ Boss not found.")
-
-        view = ConfirmView(ctx, boss_name, self)
-        await ctx.respond(f"❗ Are you sure you want to remove **{boss_name}**?", view=view)
-
-    # /boss info [boss_name]
-    @boss.command(name="info", description="View info about a boss")
-    @option("boss_name", description="Select a boss")
-    async def info(self, ctx, boss_name: str):
-        boss = self.boss_data.get(boss_name)
+        boss = self.bosses.get(name.lower())
         if not boss:
-            return await ctx.respond("⚠️ Boss not found.")
-        await ctx.respond(f"📘 **Boss Info:**\nName: {boss_name}")
+            await ctx.respond("⚠️ Boss not found.")
+            return
 
-    # /boss tod [boss_name] [time_of_death]
-    @boss.command(name="tod", description="Add boss time of death")
-    @option("boss_name", description="Select a boss")
-    @option("time_of_death", description="Enter time of death (HH:MM 24-hour format)")
-    async def tod(self, ctx, boss_name: str, time_of_death: str):
-        if boss_name not in self.boss_data:
-            return await ctx.respond("⚠️ Boss not found.")
+        if field not in boss:
+            await ctx.respond("⚠️ Invalid field. Valid fields: atk_type, monster_type, loot, spawn_place, spawn_cooldown")
+            return
 
-        self.boss_data[boss_name]["tod"] = time_of_death
-        await ctx.respond(f"💀 Time of death for **{boss_name}** set to {time_of_death}")
+        boss[field] = value
+        await ctx.respond(f"✏️ Updated **{name}**'s `{field}` to `{value}`.")
 
-    # /boss timer
-    @boss.command(name="timer", description="Show boss respawn timers")
-    async def timer(self, ctx):
-        if not self.boss_data:
-            return await ctx.respond("⏰ No boss data available.")
-        response = "### Boss Timers:\n"
-        for name, data in self.boss_data.items():
-            if "tod" in data:
-                # Example: calculate +4 hours respawn
-                tod = datetime.datetime.strptime(data["tod"], "%H:%M")
-                respawn = tod + datetime.timedelta(hours=4)
-                timestamp = int(respawn.timestamp())
-                response += f"- **{name}** respawns <t:{timestamp}:R>\n"
-        await ctx.respond(response or "No timers set yet.")
+    # === /boss remove ===
+    @boss.subcommand(name="remove", description="Remove a boss (admin only)")
+    async def remove(self, ctx, name: str):
+        if not self.is_admin(ctx):
+            await ctx.respond("❌ You don’t have permission to use this command.", ephemeral=True)
+            return
 
-    # Helper: admin role check
-    async def _is_admin(self, ctx):
-        role_names = [role.name for role in ctx.author.roles]
-        return ADMIN_ROLE in role_names
+        if name.lower() in self.bosses:
+            del self.bosses[name.lower()]
+            await ctx.respond(f"🗑️ Removed boss **{name}**.")
+        else:
+            await ctx.respond("⚠️ Boss not found.")
 
+    # === /boss info ===
+    @boss.subcommand(name="info", description="Show boss info")
+    async def info(self, ctx, name: str):
+        boss = self.bosses.get(name.lower())
+        if not boss:
+            await ctx.respond("⚠️ Boss not found.")
+            return
 
-# Confirmation view for /boss remove
-class ConfirmView(discord.ui.View):
-    def __init__(self, ctx, boss_name, cog):
-        super().__init__(timeout=30)
-        self.ctx = ctx
-        self.boss_name = boss_name
-        self.cog = cog
+        embed = discord.Embed(title=f"🐉 Boss Info: {boss['name']}", color=discord.Color.gold())
+        embed.add_field(name="Attack Type", value=boss["atk_type"], inline=True)
+        embed.add_field(name="Monster Type", value=boss["monster_type"], inline=True)
+        embed.add_field(name="Loot", value=boss["loot"], inline=False)
+        embed.add_field(name="Spawn Place", value=boss["spawn_place"], inline=False)
+        embed.add_field(name="Spawn Cooldown", value=boss["spawn_cooldown"], inline=False)
+        await ctx.respond(embed=embed)
 
-    @discord.ui.button(label="✅ Confirm", style=discord.ButtonStyle.green)
-    async def confirm(self, button, interaction):
-        del self.cog.boss_data[self.boss_name]
-        await interaction.response.edit_message(content=f"🗑️ Boss **{self.boss_name}** removed.", view=None)
+    # === /boss list ===
+    @boss.subcommand(name="list", description="Show boss list (all, today, or specific day)")
+    async def list(self, ctx, filter: str = "all"):
+        if not self.bosses:
+            await ctx.respond("📭 No bosses added yet.")
+            return
 
-    @discord.ui.button(label="❌ Cancel", style=discord.ButtonStyle.red)
-    async def cancel(self, button, interaction):
-        await interaction.response.edit_message(content="❎ Action cancelled.", view=None)
+        embed = discord.Embed(title=f"📜 Boss List ({filter.title()})", color=discord.Color.blue())
+        for boss in self.bosses.values():
+            embed.add_field(name=boss["name"], value=f"{boss['monster_type']} | {boss['spawn_place']}", inline=False)
+        await ctx.respond(embed=embed)
+
+    # === /boss timer ===
+    @boss.subcommand(name="timer", description="Show boss timer for selected boss")
+    async def timer(self, ctx, name: str):
+        boss = self.bosses.get(name.lower())
+        if not boss:
+            await ctx.respond("⚠️ Boss not found.")
+            return
+
+        await ctx.respond(f"⏰ **{boss['name']}** respawns every `{boss['spawn_cooldown']}` at `{boss['spawn_place']}`.")
+
+    # === /boss help ===
+    @boss.subcommand(name="help", description="Show all /boss subcommands")
+    async def help(self, ctx):
+        embed = discord.Embed(title="📘 /boss Command Help", color=discord.Color.green())
+        embed.add_field(name="/boss add", value="Add a boss (Admin only)", inline=False)
+        embed.add_field(name="/boss edit", value="Edit boss info (Admin only)", inline=False)
+        embed.add_field(name="/boss remove", value="Remove a boss (Admin only)", inline=False)
+        embed.add_field(name="/boss info [boss_name]", value="Show specific boss info", inline=False)
+        embed.add_field(name="/boss list [all|today|<day>]", value="Show boss list", inline=False)
+        embed.add_field(name="/boss timer [boss_name]", value="Show boss timer", inline=False)
+        embed.add_field(name="/boss help", value="Show this help message", inline=False)
+        await ctx.respond(embed=embed)
 
 
 def setup(bot):
