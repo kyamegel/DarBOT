@@ -1,39 +1,29 @@
 import discord
 from discord.ext import commands
 
-# Replace with your admin role name
 ADMIN_ROLE_NAME = "Admin"
 
 class Boss(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.bosses = {}  # Example in-memory data (replace with DB later)
 
     def is_admin(self, ctx):
-        """Check if user has the admin role"""
         return discord.utils.get(ctx.author.roles, name=ADMIN_ROLE_NAME) is not None
 
-    # === /boss parent command ===
     @commands.slash_command(name="boss", description="Manage or view boss information.")
     async def boss(self, ctx):
-        pass  # parent command only
-
+        pass
     # === /boss add ===
     @boss.subcommand(name="add", description="Add a new boss (admin only)")
-    async def add(self, ctx, name: str, atk_type: str, monster_type: str, loot: str, spawn_place: str, spawn_cooldown: str):
+    async def add(self, ctx):
         if not self.is_admin(ctx):
             await ctx.respond("❌ You don’t have permission to use this command.", ephemeral=True)
-            return
+        return
 
-        self.bosses[name.lower()] = {
-            "name": name,
-            "atk_type": atk_type,
-            "monster_type": monster_type,
-            "loot": loot,
-            "spawn_place": spawn_place,
-            "spawn_cooldown": spawn_cooldown
-        }
-        await ctx.respond(f"✅ Added boss **{name}** successfully!")
+        # Open the boss add form modal
+        from cogs.boss_add import BossAddModal
+        modal = BossAddModal()
+        await ctx.send_modal(modal)
 
     # === /boss edit ===
     @boss.subcommand(name="edit", description="Edit boss info (admin only)")

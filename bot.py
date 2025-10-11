@@ -17,6 +17,7 @@ async def on_ready():
 
 @bot.event
 async def setup_hook():
-    await bot.load_extension("cogs.example")
+    await bot.load_extension("cogs.boss")        # main boss command
+    await bot.load_extension("cogs.boss_add")    # separate /boss add form
 
 bot.run(TOKEN)
