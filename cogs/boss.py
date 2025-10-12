@@ -19,10 +19,28 @@ async def boss_info(ctx, boss_name: str = None):
 async def boss_list(ctx, filter: str = "all"):
     await ctx.respond(f"🧩 You used `/boss list` (filter: {filter})")
 
-# === /boss tod ===
-@boss.command(name="tod", description="Add time of death", name=str, tod=time)
-async def boss_tod(ctx, boss_name:str, tod=time):
-    await ctx.respond(f"{tod} for {name} added")
+# === /boss tod [name] [time_of_death] ===
+@boss.command(name="tod", description="Update the time of death for a boss")
+@discord.option("name", description="The name of the boss", required=True)
+@discord.option("time_of_death", description="Time of death (HH:mm 24-hour format)", required=True)
+async def boss_tod(ctx: discord.ApplicationContext, name: str, time_of_death: str):
+    # Validate HH:mm format (24-hour)
+    if not re.match(r"^(?:[01]\d|2[0-3]):[0-5]\d$", time_of_death):
+        await ctx.respond(
+            "❌ Invalid time format! Please use **HH:mm** in 24-hour format (e.g. `14:30`).",
+            ephemeral=True
+        )
+        return
+
+    # Optional: convert to datetime for internal processing
+    try:
+        datetime.strptime(time_of_death, "%H:%M")
+    except ValueError:
+        await ctx.respond("❌ Invalid time. Please check your input.", ephemeral=True)
+        return
+
+    # Respond with confirmation
+    await ctx.respond(f"✅ TOD: **{time_of_death}** for **{name}** has been updated.")
 
 # === /boss timer ===
 @boss.command(name="timer", description="Show boss timer")
