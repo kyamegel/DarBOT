@@ -8,10 +8,47 @@ class Boss(commands.Cog):
 # Create the /boss command group
 boss = discord.SlashCommandGroup("boss", "Manage or view boss-related commands")
 
+class AddBossModal(discord.ui.Modal):
+    def __init__(self, boss_name: str):
+        super().__init__(title=f"Add Boss: {boss_name}")
+        self.boss_name = boss_name
+
+        self.spawn_time = discord.ui.InputText(
+            label="Spawn Time",
+            placeholder="<day>/cooldown, initial time"
+            required=True
+        )
+
+        self.location = discord.ui.InputText(
+            label="Spawn Location",
+            placeholder="Enter spawn location",
+            required=True
+        )
+
+        self.add_item(self.spawn_time)
+        self.add_item(self.location)
+    
+    async def callback(self, interaction: discord.Interaction):
+        embed = discord.Embed(
+            title="✅ Boss Added!"
+            color=discord.Color.green()
+        )
+        embed.add_field(name="Name", value=self.boss_name, inline=False)
+        embed.add_field(name="Spawn Time", value=self.spawn_time.value, inline=False)
+        embed.add_field(name="Location", value=self.location.value, inline=False)
+
+        await interaction.response.send_message(embed=embed)
+
 # === /boss add ===
 @boss.command(name="add", description="Add a new boss")
-async def boss_add(ctx):
-    await ctx.respond("🧩 You used `/boss add`")
+@discord.option(
+    "name",
+    description="The name of the boss to add",
+    required=True
+)
+async def boss_add(ctx: discord.ApplicationContext, name: str):
+    modal = AddBossModal(name)
+    await ctx.send_modal(modal)
 
 # === /boss edit ===
 @boss.command(name="edit", description="Edit a boss")
