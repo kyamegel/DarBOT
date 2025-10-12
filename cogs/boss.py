@@ -15,7 +15,7 @@ class AddBossModal(discord.ui.Modal):
 
         self.spawn_time = discord.ui.InputText(
             label="Spawn Time",
-            placeholder="<day>/cooldown, initial time"
+            placeholder="Enter spawn time",
             required=True
         )
 
