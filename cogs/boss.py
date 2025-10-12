@@ -5,6 +5,7 @@ import re
 import aiomysql
 from dotenv import load_dotenv
 import os
+import mysql.connector
 
 load_dotenv()
 DB_HOST = os.getenv("DB_HOST")
