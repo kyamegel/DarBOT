@@ -1,7 +1,16 @@
 import discord
 from discord.ext import commands
-from datetime import datetime
+from datetime import datetime, timedelta
 import re
+import aiomysql
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+DB_HOST = os.getenv("DB_HOST")
+DB_USER = os.getenv("DB_USER")
+DB_PASS = os.getenv("DB_PASS")
+DB_NAME = os.getenv("DB_NAME")
 
 class Boss(commands.Cog):
     def __init__(self, bot):
@@ -33,15 +42,71 @@ async def boss_tod(ctx: discord.ApplicationContext, name: str, time_of_death: st
         )
         return
 
-    # Optional: convert to datetime for internal processing
     try:
-        datetime.strptime(time_of_death, "%H:%M")
-    except ValueError:
-        await ctx.respond("❌ Invalid time. Please check your input.", ephemeral=True)
-        return
+        # Parse the time to ensure it's valid
+        tod_obj = datetime.strptime(time_of_death, "%H:%M")
 
-    # Respond with confirmation
-    await ctx.respond(f"✅ TOD: **{time_of_death}** for **{name}** has been updated.")
+        # Connect to the database
+        db = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASS,
+            database=DB_NAME
+        )
+        cursor = db.cursor(dictionary=True)
+
+        # 1️⃣ Fetch boss data
+        cursor.execute("SELECT id, cooldown, spawn_type FROM bosses WHERE name = %s", (name,))
+        boss = cursor.fetchone()
+
+        if not boss:
+            await ctx.respond(f"❌ Boss **{name}** not found in database.", ephemeral=True)
+            cursor.close()
+            db.close()
+            return
+
+        if boss["spawn_type"] == "fixed":
+            await ctx.respond(f"⚠️ **{name}** has a fixed spawn and cannot be updated manually.", ephemeral=True)
+            cursor.close()
+            db.close()
+            return
+
+        # 2️⃣ Backup the current next_spawn
+        cursor.execute("UPDATE boss_timers SET backup = next_spawn WHERE boss_id = %s", (boss["id"],))
+
+        # 3️⃣ Compute next_spawn (TOD today + cooldown hours)
+        now = datetime.now()  # current datetime (local)
+        today_str = now.strftime("%Y-%m-%d")
+        tod_datetime = datetime.strptime(f"{today_str} {time_of_death}", "%Y-%m-%d %H:%M")
+
+        # Add cooldown hours
+        next_spawn = tod_datetime + timedelta(hours=boss["cooldown"])
+
+        # 4️⃣ Update boss_timers
+        cursor.execute("""
+            UPDATE boss_timers
+            SET next_spawn = %s,
+                last_update = NOW()
+            WHERE boss_id = %s
+        """, (next_spawn, boss["id"]))
+
+        db.commit()
+
+        # 5️⃣ Generate Discord timestamp <t:unix:R>
+        unix_ts = int(next_spawn.timestamp())
+        discord_timer = f"<t:{unix_ts}:R>"
+
+        await ctx.respond(f"✅ TOD updated!\n**{name}** will respawn {discord_timer} *(local time: {next_spawn.strftime('%Y-%m-%d %H:%M')})*")
+
+    except Exception as e:
+        await ctx.respond(f"❌ Database error: {e}", ephemeral=True)
+
+    finally:
+        try:
+            cursor.close()
+            db.close()
+        except:
+            pass
 
 # === /boss timer ===
 @boss.command(name="timer", description="Show boss timer")
@@ -57,9 +122,6 @@ async def boss_help(ctx):
         color=discord.Color.red()
     )
 
-    embed.add_field(name="**``/boss add``**", value="Adds a boss to the list.", inline=False)
-    embed.add_field(name="**``/boss edit [boss_name]``**", value="Edit the information of the chosen boss.", inline=False)
-    embed.add_field(name="**``/boss remove``**", value="Remove the chosen boss.", inline=False)
     embed.add_field(name="**``/boss info [boss_name]``**", value="Displays the chosen boss' information.", inline=False)
     embed.add_field(name="**``/boss list [all/today/<day>] ``**", value="Displays a list of bosses.\n -# options: all, today, day", inline=False)
     embed.add_field(name="**``/boss timer [boss_name]``**", value="Displays the chosen boss' timer.", inline=False)
