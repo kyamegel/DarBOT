@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from datetime import time
+from datetime import datetime
 
 class Boss(commands.Cog):
     def __init__(self, bot):
@@ -62,6 +62,7 @@ async def boss_help(ctx):
     embed.add_field(name="**``/boss info [boss_name]``**", value="Displays the chosen boss' information.", inline=False)
     embed.add_field(name="**``/boss list [all/today/<day>] ``**", value="Displays a list of bosses.\n -# options: all, today, day", inline=False)
     embed.add_field(name="**``/boss timer [boss_name]``**", value="Displays the chosen boss' timer.", inline=False)
+    embed.add_field(name="**``/boss tod [name] [time_of_death]``**", value="Add time of death to the selected boss", inline=False)
 
     embed.set_footer(text="Use these commands to manage or view boss information.")
     await ctx.respond(embed=embed)
