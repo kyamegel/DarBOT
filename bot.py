@@ -15,6 +15,7 @@ async def on_ready():
     print("🔁 Syncing commands...")
     await bot.sync_commands()
     print("✅ Commands synced!")
+    print("DEBUG DB_PASS =", os.getenv("DB_PASS"))
 
 # Load cogs
 bot.load_extension("cogs.boss")

@@ -1,17 +1,7 @@
 import discord
 from discord.ext import commands
 from datetime import datetime, timedelta
-import re
-import aiomysql
-from dotenv import load_dotenv
-import os
-import mysql.connector
-
-load_dotenv()
-DB_HOST = os.getenv("DB_HOST")
-DB_USER = os.getenv("DB_USER")
-DB_PASS = os.getenv("DB_PASS")
-DB_NAME = os.getenv("DB_NAME")
+from db import fetch
 
 class Boss(commands.Cog):
     def __init__(self, bot):
@@ -21,14 +11,138 @@ class Boss(commands.Cog):
 boss = discord.SlashCommandGroup("boss", "Manage or view boss-related commands")
 
 # === /boss info ===
-@boss.command(name="info", description="Show boss info")
-async def boss_info(ctx, boss_name: str = None):
-    await ctx.respond(f"🧩 You used `/boss info` (boss: {boss_name})")
+@boss.command(name="info", description="Display boss information from the database")
+async def boss_info(ctx, name: str):
+    # Query exactly as you specified
+    query = """
+        SELECT cooldown, spawn_time, spawn_day, timer, location,
+               boss_type, boss_level
+        FROM boss_timers AS a
+        JOIN bosses AS b
+        ON a.boss_name = b.boss_name
+        WHERE a.boss_name = %s
+    """
+    rows = await fetch(query, name)
+
+    if not rows:
+        await ctx.respond(f"⚠️ No boss found with name **{name}**.")
+        return
+
+    boss = rows[0]
+
+    cooldown = boss["cooldown"]
+    spawn_time = boss["spawn_time"]
+    spawn_day = boss["spawn_day"]
+    timer = boss["timer"]
+    location = boss["location"]
+    boss_type = boss["boss_type"]
+    boss_level = boss["boss_level"]
+
+    # ✅ Compute "(x minutes ago)" or Discord timestamp
+    time_ago = ""
+    if isinstance(timer, datetime):
+        unix_timestamp = int(timer.replace(tzinfo=timezone.utc).timestamp())
+        time_ago = f"(<t:{unix_timestamp}:R>)"  # auto-updating relative time
+
+    # ✅ Build Embed
+    embed = discord.Embed(
+        description=f"**{name}** Lv.{boss_level}",
+        color=discord.Color.blurple()
+    )
+
+    embed.add_field(name="Boss Type", value=boss_type or "-", inline=True)
+    embed.add_field(name="Spawn Location", value=location or "-", inline=True)
+    embed.add_field(name="Cooldown", value=f"{cooldown} hours", inline=True)
+
+    embed.add_field(
+        name="\u200B",
+        value=f"**SPAWN TIME:**\n{spawn_day}, {spawn_time} {time_ago}",
+        inline=False
+    )
+
+    await ctx.respond(embed=embed)
 
 # === /boss list ===
-@boss.command(name="list", description="List all bosses")
-async def boss_list(ctx, filter: str = "all"):
-    await ctx.respond(f"🧩 You used `/boss list` (filter: {filter})")
+@boss.command(name="list", description="List all bosses or filter by day")
+async def boss_list(ctx, filter: str):
+    """Show boss list filtered by all, today, or specific day"""
+
+    valid_days = ["sunday", "monday", "tuesday", "wednesday",
+                  "thursday", "friday", "saturday"]
+
+    # Normalize filter input
+    filter_lower = filter.lower()
+
+    # ✅ Get today's weekday (Philippine timezone)
+    tz = pytz.timezone("Asia/Manila")
+    today_name = datetime.now(tz).strftime("%A").lower()
+
+    # ✅ Build query based on filter
+    if filter_lower == "all":
+        query = """
+            SELECT a.boss_name, a.timer, a.spawn_day
+            FROM boss_timers AS a
+            JOIN bosses AS b ON a.boss_name = b.boss_name
+            ORDER BY a.spawn_day, a.spawn_time
+        """
+        params = ()
+    elif filter_lower == "today":
+        query = """
+            SELECT a.boss_name, a.timer, a.spawn_day
+            FROM boss_timers AS a
+            JOIN bosses AS b ON a.boss_name = b.boss_name
+            WHERE LOWER(a.spawn_day) = %s
+            ORDER BY a.spawn_time
+        """
+        params = (today_name,)
+    elif filter_lower in valid_days:
+        query = """
+            SELECT a.boss_name, a.timer, a.spawn_day
+            FROM boss_timers AS a
+            JOIN bosses AS b ON a.boss_name = b.boss_name
+            WHERE LOWER(a.spawn_day) = %s
+            ORDER BY a.spawn_time
+        """
+        params = (filter_lower,)
+    else:
+        await ctx.respond("⚠️ Invalid filter. Use `all`, `today`, or a weekday name.")
+        return
+
+    # ✅ Fetch rows
+    rows = await fetch(query, *params)
+
+    if not rows:
+        await ctx.respond("⚠️ No bosses found for that filter.")
+        return
+
+    # ✅ Format the boss list
+    description = ""
+    now = datetime.now(tz)
+    for row in rows:
+        name = row["boss_name"]
+        timer = row["timer"]
+
+        # Compute time left or relative time
+        if isinstance(timer, datetime):
+            unix_timestamp = int(timer.replace(tzinfo=timezone.utc).timestamp())
+            description += f"• **{name}** spawning <t:{unix_timestamp}:R>\n"
+        else:
+            description += f"• **{name}** spawning soon\n"
+
+    # ✅ Create embed
+    title_map = {
+        "all": "All Bosses",
+        "today": f"Bosses Spawning Today ({today_name.title()})",
+    }
+    title = title_map.get(filter_lower, f"Bosses on {filter_lower.title()}")
+
+    embed = discord.Embed(
+        title=title,
+        description=description,
+        color=discord.Color.blurple()
+    )
+
+    await ctx.respond(embed=embed)
 
 # === /boss tod [name] [time_of_death] ===
 @boss.command(name="tod", description="Update the time of death for a boss")
